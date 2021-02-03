@@ -1,18 +1,23 @@
+import java.util.ArrayList;
+import java.util.Scanner;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class T extends Thread {  
 
 	// ....................................................... MATRIZ
-	
+
 	// .. Caracteristicas
-	
-	private final static int DIM = 5;
+
 	private final static int LIM = 1000;
-	private static int[][] matriz = new int[DIM][DIM];
-	
+
+	private static int DIM;
+	private static int[][] matriz;
+
 	// .. Inicializar
 
 	public static void inicializarMAtriz() {
+
+		matriz = new int[DIM][DIM];
 
 		for(int i = 0; i < DIM; i++) {
 			for(int j = 0; j < DIM; j++) {
@@ -20,7 +25,7 @@ public class T extends Thread {
 			}
 		}
 	}
-	
+
 	// .. Imprimir
 
 	public static void imprimirMatriz() {
@@ -37,51 +42,100 @@ public class T extends Thread {
 	// ....................................................... Máximo 
 
 	private static Maximo oMax;
-	
-	private int id = 0 ;
-	private int maxEnFila = -1;
-	
-	// .. Inicializar cada 'Thread' con un identificador (id = fila de la matriz)
 
-	public T (int pId) {
+	private int id, maxEnFila;
+	private ArrayList<Integer> filasEncargadas;
+
+	// .. Inicializar cada 'Thread' con un identificador y sus filas correspondientes
+
+	public T (int pId, ArrayList<Integer> pFilasEncargadas) {
 		id = pId ;
+		maxEnFila = -1;
+		filasEncargadas = pFilasEncargadas;
 	}
-	
-	// .. Encontrar el maxímo de la fila y actualizar el máximo global. 
+
+	// .. Encontrar el maxímo de las filas y actualizar el máximo global. 
 
 	public void run () {
-		
+
 		// .. Encontrar mayo de la fila
 		
-		for(int j = 0; j < DIM; j++){
-			if(this.maxEnFila < matriz[this.id][j]) this.maxEnFila = matriz[this.id][j];
+		for(int i = 0; i < this.filasEncargadas.size(); i++) {
+			for(int j = 0; j < DIM; j++){
+				if(this.maxEnFila < matriz[filasEncargadas.get(i)][j]) this.maxEnFila = matriz[filasEncargadas.get(i)][j];
+			}
 		}
 		
-		// .. Imprimir el mayor si ya todos los threads se ejecutaron.
 		
+
+		// .. Imprimir el mayor si ya todos los threads se ejecutaron.
+
 		if(oMax.anotar(this.maxEnFila, this.id)) 
-			System.out.println("El maxímo de la matriz es: " + oMax.darMaximo() + " - Localizado por el thread: " + oMax.darLocalizador());
+			System.out.println("----------\n" + "El maxímo de la matriz es: " + oMax.darMaximo() + " - Localizado por el thread: " + oMax.darLocalizador());
 
 	}
 
 	public static void main(String[] args) {
-		
+
+		// .. Cantidad de filas de la matriz
+
+		@SuppressWarnings("resource")
+		Scanner lector = new Scanner (System.in);
+		System.out.println("Ingrese el número de filas de la matriz:");
+		DIM = lector.nextInt();
+
+		// .. Cantidad de filas por thread
+
+		System.out.println("Ingrese el número de filas por cada thread:");
+		int filas = lector.nextInt();	
+
 		// .. Inicializo e imprimo la matriz
-		
+
 		System.out.println("----------");
 		System.out.println("  Matriz  ");
 		System.out.println("----------");
 
 		inicializarMAtriz();
 		imprimirMatriz();
-		
-		// .. Creo el objeto maximo y una cantidad FIJA de threads igual a las dimensiones de la matriz
-		
-		int numThreads = DIM;
+
+		// ........ Creo el objeto maximo y una cantidad FIJA de threads que cubren las dimensiones de la matriz
+
+		// .. Cantidad de threads
+
+		int numThreads = (int) Math.ceil((double) DIM/filas);
+
+		// .. Máximo
+
 		oMax = new Maximo(numThreads);
 
-		for (int i = 0; i < numThreads; i++) 
-			new T (i).start();
+		// .. Contador para asignar
+
+		int contador = 0;
+
+		// .. Arrancar threads
+
+		for (int i = 0; i < numThreads; i++) {
+
+			// .. Asignar filas y impimir asignación
+
+			ArrayList<Integer> cubrir = new ArrayList<>();
+			ArrayList<Integer> asig = new ArrayList<>();
+
+			for(int j = 0; j < filas; j++) {
+				if(contador != DIM) {
+					cubrir.add(contador++);
+					asig.add(contador);
+				}
+					
+			}
+			
+			System.out.println("El thread con id: " + (i+1) + " se encarga de las fila(s) " + asig.toString());
+			
+			// .. Iniciar Thread 
+			
+			new T (i,cubrir).start();
+		}
+
 
 	}
 
